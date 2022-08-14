@@ -41,14 +41,30 @@ class Encoder(nn.Module):
 
         self.seq_embedding = SequenceEmbedding(config)
         self.mlp = nn.Sequential(
-            nn.Linear(self.model_d, self.class_count),
+            nn.Linear(self.model_d, 1),
             nn.Sigmoid())
+
+        self.classifier_mlp = nn.Sequential(
+                nn.Linear(self.model_size, self.class_count),
+                nn.Sigmoid())
+
+        self.test = nn.Sequential(
+                nn.Linear(self.model_d*self.model_size, self.class_count),
+                nn.Sigmoid())
 
     def forward(self, x):
         keys, vals = self.seq_embedding(x)
+        #test
+        #keys = keys[:,0,:]
+        #done test
         scores = keys @ keys.transpose(-2, -1)
         probs = torch.softmax(scores, -1)
-        attention = probs @ vals
-        x = self.mlp(attention[:,0,:])
+        attention = probs @ keys 
+        #test
+        x = self.test(attention.view(attention.shape[0], -1))
+        x = F.softmax(x, dim=-1)
+        return x
+        x = self.mlp(attention).squeeze(-1)
+        x = self.classifier_mlp(x)
         x = F.softmax(x, dim=-1)
         return x

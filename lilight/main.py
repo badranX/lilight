@@ -6,10 +6,11 @@ import argparse
 
 def start_train():
     class_count = 210
-    config = EncoderConfig(model_size=54, model_d=12, vocab_size=256, class_count=class_count)
-    dataloader = get_data_loader(batch_size = 10, config=config, split="train")
+    config = EncoderConfig(model_size=64, model_d=64, vocab_size=256, class_count=class_count)
+    dataloader = get_data_loader(batch_size = 2, config=config, split="train")
+    print(len(dataloader))
     model = Encoder(config)
-    train(model, dataloader, epochs=2)
+    train(model, dataloader, epochs=10)
 
 
 if __name__ == "__main__":
