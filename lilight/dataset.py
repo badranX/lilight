@@ -1,7 +1,9 @@
 from datasets import load_dataset
 import torch
 from torch.utils.data import DataLoader, Dataset
-from .tokenizer import tokenizer
+from .tokenizer import tokenizer, Labels
+
+
 
 def partition(rows, model_size):
     tmp = lambda x: [x[i: i + model_size] for i in range(0, len(x), model_size)]
@@ -18,21 +20,32 @@ def pad(txt, max_size):
         txt += [0]*(max_size - len(txt))
     return txt
 
+class TrainData:
+
+    def __init__(self, config):
+        model_size = config.model_size
+        datasets = load_dataset("papluca/language-identification")
     
-def get_data_loader(batch_size, config, split="train"):
-    model_size = config.model_size
-    dataset = load_dataset("papluca/language-identification")
-    dataset = dataset[split]
-    lang = {lang for lang in dataset["labels"]}
-    lang = {l: i for i, l in enumerate(lang)}
-    class_count = max(lang)
-    dataset = dataset.map(lambda x: {"text": tokenizer(x['text'])}, batched=True)
-    dataset = dataset.map(lambda x: partition(x, model_size), batched=True)
-    dataset = dataset.map(lambda x: {"labels": lang[x["labels"]]})
-    dataset = dataset.map(lambda x: {"text": pad(x["text"], model_size)})
+        lang = {lang for lang in datasets["train"]["labels"]}
+        lang = {l: i for i, l in enumerate(lang)}
+        config.class_count = len(lang)
+        self.labels = Labels(lang)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        new_ds = {}
+        for key, dataset in datasets.items():
+            dataset = dataset.map(lambda x: {"text": tokenizer(x['text'])}, batched=True)
+            dataset = dataset.map(lambda x: partition(x, model_size), batched=True)
+            dataset = dataset.map(lambda x: {"labels": lang[x["labels"]]})
+            dataset = dataset.map(lambda x: {"text": pad(x["text"], model_size)})
+            new_ds[key] = dataset
 
-    dataset = dataset.with_format("torch", device=device)
-    print("BADRANX", len(dataset))
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        self.datasets = new_ds
+
+    def get_dataloader(self, batch_size, split="train"):
+        dataset = self.datasets[split]
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        dataset = dataset.with_format("torch", device=device)
+        self.dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        self.dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        return self.dataloader

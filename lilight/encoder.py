@@ -2,17 +2,10 @@ import torch
 from torch import nn
 from torch.functional import F
 from dataclasses import dataclass
-
-@dataclass
-class EncoderConfig:
-    model_size: int
-    model_d: int
-    vocab_size: int
-    class_count: int
-
+from .config import Config
 
 class SequenceEmbedding(nn.Module):
-    def __init__(self, config: EncoderConfig):
+    def __init__(self, config: Config):
         super().__init__()
         I = torch.eye(config.model_size).unsqueeze(0)
         self.register_buffer("I", torch.eye(config.model_size))
@@ -21,18 +14,20 @@ class SequenceEmbedding(nn.Module):
         self.fuse = nn.Linear(config.model_d + config.model_size, config.model_d)
 
     def forward(self, x):
+        mask = x != 0
+        mask = mask.unsqueeze(-1).detach()
         keys = self.keys(x)
         vals = self.vals(x)
         pos = self.I.expand(x.shape[0], *[-1]*len(self.I.shape))
         keys = torch.cat([keys, pos], dim=-1)
         vals = torch.cat([vals, pos], dim=-1)
-        vals = self.fuse(vals)
-        keys = self.fuse(keys)
+        vals = self.fuse(vals)*mask
+        keys = self.fuse(keys)*mask
         return keys, vals
 
 
 class Encoder(nn.Module):
-    def __init__(self, config: EncoderConfig):
+    def __init__(self, config: Config):
         super().__init__()
         self.vocab_size = config.vocab_size
         self.model_d = config.model_d
@@ -41,30 +36,35 @@ class Encoder(nn.Module):
 
         self.seq_embedding = SequenceEmbedding(config)
         self.mlp = nn.Sequential(
-            nn.Linear(self.model_d, 1),
-            nn.Sigmoid())
+            nn.Linear(self.model_d, self.model_d//2),
+            nn.ReLU(),
+            nn.Linear(self.model_d//2, 1),
+            nn.Sigmoid()
+            )
 
         self.classifier_mlp = nn.Sequential(
                 nn.Linear(self.model_size, self.class_count),
                 nn.Sigmoid())
 
         self.test = nn.Sequential(
-                nn.Linear(self.model_d*self.model_size, self.class_count),
+                nn.Linear(self.model_d, self.model_d),
+                nn.Sigmoid(),
+                )
+
+        self.one_word_mlp = nn.Sequential(
+                nn.Linear(self.model_d, self.class_count),
+                nn.ReLU(),
+                nn.Linear(self.class_count, self.class_count),
+                nn.ReLU(),
+                nn.Linear(self.class_count, self.class_count),
                 nn.Sigmoid())
 
     def forward(self, x):
         keys, vals = self.seq_embedding(x)
-        #test
-        #keys = keys[:,0,:]
-        #done test
-        scores = keys @ keys.transpose(-2, -1)
+        queries = self.test(keys)
+        scores = keys @ queries.transpose(-2, -1)
         probs = torch.softmax(scores, -1)
-        attention = probs @ keys 
-        #test
-        x = self.test(attention.view(attention.shape[0], -1))
-        x = F.softmax(x, dim=-1)
-        return x
+        attention = probs @ vals
         x = self.mlp(attention).squeeze(-1)
         x = self.classifier_mlp(x)
-        x = F.softmax(x, dim=-1)
         return x

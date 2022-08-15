@@ -1,4 +1,5 @@
-from .. import Encoder, EncoderConfig
+from .. import Encoder, config
+
 import torch
 from matplotlib import pyplot as plt
 
@@ -7,7 +8,7 @@ def test_encoder():
     e_size = 4
     vocab_size = 256
     language_count = 2
-    config = EncoderConfig(e_size, e_d, vocab_size, language_count)
+    config = config.Config(e_size, e_d, vocab_size, language_count)
     e = Encoder(config)
     txt = "absd"
     x = list(map(ord, txt))
