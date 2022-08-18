@@ -1,17 +1,19 @@
 from .encoder import Encoder
 from .config import *
-from .dataset import TrainData
+from .dataset import Dataset
 from .train import *
 import argparse
 
 
 def start_train():
-    config = Config(model_size=128, model_d=64, vocab_size=256, class_count=None)
-    traindata = TrainData(config)
-    dataloader = traindata.get_dataloader(batch_size = 64, split="train")
-    print(len(dataloader))
+    config = Config()
+    traindata = Dataset(config)
+    train_dataloader = traindata.get_dataloader(batch_size = config.class_count, split="train")
+    eval_dataloader = traindata.get_dataloader(batch_size = config.class_count, split="validation")
+    config.train_dataloader = train_dataloader
+    config.eval_dataloader = train_dataloader
     model = Encoder(config)
-    train(model, dataloader, lr=0.0025, epochs=10)
+    train(model, config)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,6 @@ from torch.utils.data import DataLoader, Dataset
 from .tokenizer import tokenizer, Labels
 
 
-
 def partition(rows, model_size):
     tmp = lambda x: [x[i: i + model_size] for i in range(0, len(x), model_size)]
     result = [(tmp(txt), label) for txt, label in zip(rows["text"], rows["labels"])]
@@ -20,8 +19,8 @@ def pad(txt, max_size):
         txt += [0]*(max_size - len(txt))
     return txt
 
-class TrainData:
 
+class Dataset:
     def __init__(self, config):
         model_size = config.model_size
         datasets = load_dataset("papluca/language-identification")
@@ -46,6 +45,5 @@ class TrainData:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         dataset = dataset.with_format("torch", device=device)
-        self.dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         self.dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         return self.dataloader

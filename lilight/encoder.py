@@ -11,7 +11,9 @@ class SequenceEmbedding(nn.Module):
         self.register_buffer("I", torch.eye(config.model_size))
         self.keys = nn.Embedding(config.vocab_size, config.model_d )
         self.vals = nn.Embedding(config.vocab_size, config.model_d)
-        self.fuse = nn.Linear(config.model_d + config.model_size, config.model_d)
+        self.fuse = nn.Sequential(
+                nn.Linear(config.model_d + config.model_size, config.model_d),
+                nn.Sigmoid())
 
     def forward(self, x):
         mask = x != 0
@@ -43,8 +45,11 @@ class Encoder(nn.Module):
             )
 
         self.classifier_mlp = nn.Sequential(
-                nn.Linear(self.model_size, self.class_count),
-                nn.Sigmoid())
+                nn.Linear(self.model_size, self.model_size),
+                nn.ReLU(),
+                nn.Linear(self.model_size, self.class_count)
+                )
+                #nn.Sigmoid())
 
         self.test = nn.Sequential(
                 nn.Linear(self.model_d, self.model_d),
@@ -59,10 +64,11 @@ class Encoder(nn.Module):
                 nn.Linear(self.class_count, self.class_count),
                 nn.Sigmoid())
 
+
     def forward(self, x):
         keys, vals = self.seq_embedding(x)
-        queries = self.test(keys)
-        scores = keys @ queries.transpose(-2, -1)
+        scores = keys @ vals.transpose(-2, -1)
+        #probs = torch.sigmoid(scores)
         probs = torch.softmax(scores, -1)
         attention = probs @ vals
         x = self.mlp(attention).squeeze(-1)
