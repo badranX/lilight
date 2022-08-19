@@ -1,12 +1,8 @@
 
 class Labels():
     def __init__(self, labels2idx):
-        self._labels2idx = labels2idx
-        self._idx2label = {v:k for k, v in labels2idx.items()}
-
-    def idx2label(idxs):
-        out = map(lambda x: self._idx2label[x], idxs)
-        return list(out)
+        self.labels2idx = labels2idx
+        self.idx2label = {v:k for k, v in labels2idx.items()}
 
 
 class LangSymbol:
@@ -22,12 +18,6 @@ def split_or_pad(txt, max_size):
 
 def tokenizer(txts):
     txts = map(lambda x: list(bytearray(x.encode("utf-8"))), txts)
-    print(txts)
-    return list(txts)
-
-def dokenizer(txts):
-    tmp = lambda x: ''.join(x)
-    txts = map(tmp, txts)
     return list(txts)
 
 def pad(tokens_list, model_size):

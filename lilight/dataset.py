@@ -29,6 +29,7 @@ class Dataset:
         lang = {l: i for i, l in enumerate(lang)}
         config.class_count = len(lang)
         self.labels = Labels(lang)
+        config.labels = self.labels
 
         new_ds = {}
         for key, dataset in datasets.items():

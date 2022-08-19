@@ -1,5 +1,9 @@
 import torch
+from .config import *
 from torch import nn
+from .dataset import Dataset
+from .encoder import Encoder
+
 
 def eval_step(model, dataloader, samples=None):
     model.eval()
@@ -18,8 +22,6 @@ def eval_step(model, dataloader, samples=None):
     print("guess_right : ", guess)
     print("total questions : ", count)
     print("eval_score : ", guess/count)
-
-
         #print(list(model.mlp.parameters())[0])
 
 def train_step(optimizer, loss_fn, model, x, target):
@@ -62,3 +64,23 @@ def train(model, config):
         print("EVAL --- ")
         eval_step(model, config.eval_dataloader, samples= 5000)
         print("------")
+    #end for
+    device = torch.device('cpu')
+    model.to(device)
+    torch.save(model, "model.pt")
+
+
+
+def start_train():
+    config = Config()
+    traindata = Dataset(config)
+    train_dataloader = traindata.get_dataloader(batch_size = config.class_count, split="train")
+    eval_dataloader = traindata.get_dataloader(batch_size = config.class_count, split="validation")
+    config.train_dataloader = train_dataloader
+    config.eval_dataloader = train_dataloader
+    model = Encoder(config)
+    train(model, config)
+
+
+if __name__ == "__main__":
+    start_train()

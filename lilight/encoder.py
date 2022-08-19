@@ -31,6 +31,8 @@ class SequenceEmbedding(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
+        self.config = config
+
         self.vocab_size = config.vocab_size
         self.model_d = config.model_d
         self.model_size = config.model_size
@@ -50,20 +52,6 @@ class Encoder(nn.Module):
                 nn.Linear(self.model_size, self.class_count)
                 )
                 #nn.Sigmoid())
-
-        self.test = nn.Sequential(
-                nn.Linear(self.model_d, self.model_d),
-                nn.Sigmoid(),
-                )
-
-        self.one_word_mlp = nn.Sequential(
-                nn.Linear(self.model_d, self.class_count),
-                nn.ReLU(),
-                nn.Linear(self.class_count, self.class_count),
-                nn.ReLU(),
-                nn.Linear(self.class_count, self.class_count),
-                nn.Sigmoid())
-
 
     def forward(self, x):
         keys, vals = self.seq_embedding(x)
