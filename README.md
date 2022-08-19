@@ -1,4 +1,4 @@
-A simple document language identification. The model is a uses a simple neural network with simple attention.
+A simple document language identification. The model is a simple neural network with attention technique between byte.
 
 ### setup
 Install the package. You can do it by navigating into the package directory and
